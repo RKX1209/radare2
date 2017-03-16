@@ -599,6 +599,7 @@ static int cmd_debug_map_snapshot(RCore *core, const char *input) {
 		{
 			char *file;
 			RDebugSnap *snap;
+			int sz;
 			if (input[1] == ' ') {
 				file = strdup (input + 2);
 			} else {
@@ -609,12 +610,14 @@ static int cmd_debug_map_snapshot(RCore *core, const char *input) {
 				r_debug_snap (core->dbg, core->offset);
 				snap = r_debug_snap_get (core->dbg, core->offset);
 			}
+			sz = snap->size + snap->reg->size;
 			if (snap) {
 				int fsz = 0;
 				char *data = r_file_slurp (file, &fsz);
 				if (data) {
-					if (fsz >= snap->size) {
+					if (fsz >= sz) {
 						memcpy (snap->data, data, snap->size);
+						r_reg_read_regs (snap->reg, data + snap->size, snap->reg->size);
 					} else {
 						eprintf ("This file is smaller than the snapshot size\n");
 					}
@@ -629,6 +632,7 @@ static int cmd_debug_map_snapshot(RCore *core, const char *input) {
 	case 't':
 		{
 			char *file;
+			ut8 *allreg, *dump;
 			RDebugSnap *snap;
 			if (input[1] == ' ') {
 				file = strdup (input + 2);
@@ -636,13 +640,18 @@ static int cmd_debug_map_snapshot(RCore *core, const char *input) {
 				file = r_str_newf ("0x%08"PFMT64x".dump", core->offset);
 			}
 			snap = r_debug_snap_get (core->dbg, core->offset);
+			allreg = r_reg_get_bytes (snap->reg, R_REG_TYPE_ALL, NULL);
+			dump = malloc (snap->size + snap->reg->size);
+			memcpy (dump, snap->data, snap->size);
+			memcpy (dump + snap->size, allreg, snap->reg->size);
 			if (snap) {
-				if (!r_file_dump (file, snap->data, snap->size, 0)) {
+				if (!r_file_dump (file, dump, snap->size + snap->reg->size, 0)) {
 					eprintf ("Cannot slurp '%s'\n", file);
 				}
 			} else {
 				eprintf ("Unable to find a snapshot for 0x%08"PFMT64x"\n", core->offset);
 			}
+			free (dump);
 			free (file);
 		}
 		break;

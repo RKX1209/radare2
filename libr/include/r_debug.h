@@ -154,6 +154,7 @@ typedef struct r_debug_desc_t {
 } RDebugDesc;
 
 typedef struct r_debug_snap_t {
+	RReg *reg;
 	ut64 addr;
 	ut64 addr_end;
 	ut8 *data;

@@ -82,12 +82,18 @@ R_API int r_debug_snap_set (RDebug *dbg, int idx) {
 	RDebugSnap *snap;
 	RListIter *iter;
 	ut32 count = 0;
+	ut8 *orig;
+	int orig_sz;
 	if (!dbg || idx < 0)
 		return 0;
 	r_list_foreach (dbg->snaps, iter, snap) {
 		if (count == idx) {
 			eprintf ("Writing %d bytes to 0x%08"PFMT64x"...\n", snap->size, snap->addr);
 			dbg->iob.write_at (dbg->iob.io, snap->addr, snap->data, snap->size);
+			// restoring all registers from snapshot
+			orig = r_reg_get_bytes (snap->reg, R_REG_TYPE_ALL, &orig_sz);
+			eprintf("r_reg_read_regs=%d", r_reg_read_regs (dbg->reg, orig, orig_sz));
+			eprintf ("Writing %d bytes from 0x%08"PFMT64x"(size:%d)...\n", snap->reg->size, orig, orig_sz);
 			break;
 		}
 		count++;
@@ -97,6 +103,8 @@ R_API int r_debug_snap_set (RDebug *dbg, int idx) {
 
 static int r_debug_snap_map (RDebug *dbg, RDebugMap *map) {
 	RDebugSnap *snap;
+	ut8 *orig;
+	int orig_sz;
 	if (map->size<1) {
 		eprintf ("Invalid map size\n");
 		return 0;
@@ -116,6 +124,11 @@ static int r_debug_snap_map (RDebug *dbg, RDebugMap *map) {
 	dbg->iob.read_at (dbg->iob.io, snap->addr, snap->data, snap->size);
 	snap->crc = r_hash_crc32 (snap->data, snap->size);
 
+	// saving all registers to snapshot
+	snap->reg = r_reg_new ();
+	orig = r_reg_get_bytes (dbg->reg, R_REG_TYPE_ALL, &orig_sz);
+	eprintf("r_reg_read_regs=%d", r_reg_read_regs (snap->reg, orig, orig_sz));
+	eprintf("Reading %d bytes register from dbg->reg(0x%08"PFMT64x")\n", orig_sz, orig);
 	r_list_append (dbg->snaps, snap);
 	return 1;
 }

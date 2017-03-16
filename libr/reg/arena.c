@@ -64,11 +64,13 @@ R_API bool r_reg_read_regs(RReg* reg, ut8* buf, const int len) {
 			arena->size = len;
 			arena->bytes = calloc (1, len);
 			if (!arena->bytes) {
+				eprintf("fail1\n");
 				r_reg_arena_free (arena);
 				return false;
 			}
 		}
 		if (!arena->bytes) {
+			eprintf("fail2\n");
 			arena->size = 0;
 			return false;
 		}
@@ -77,6 +79,7 @@ R_API bool r_reg_read_regs(RReg* reg, ut8* buf, const int len) {
 			R_MIN (len - off, arena->size));
 		off += arena->size;
 		if (off > len) {
+			eprintf("fail3\n");			
 			return false;
 		}
 	}
