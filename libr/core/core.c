@@ -1833,6 +1833,7 @@ R_API bool r_core_init(RCore *core) {
 		}
 	}
 	r_config_set (core->config, "asm.arch", R_SYS_ARCH);
+	r_config_set (core->config, "io.cache", "true");
 	r_bp_use (core->dbg->bp, R_SYS_ARCH, core->anal->bits);
 	update_sdb (core);
 	return 0;
